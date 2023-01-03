@@ -1,10 +1,8 @@
-name: Pipeline Workflow Setup
-run-name: ${{ github.repository }} | ${{ github.ref_name }} | ${{ github.event_name }} | '${{ github.event.head_commit.message }}'
+name: "Pipeline Workflow Setup"
+
 on:
-  
   push:
-    branches:
-      - 'main'
+    branches: [ "main" ]
 #   pull_request:
 #     branches: [ "main" ]
 
