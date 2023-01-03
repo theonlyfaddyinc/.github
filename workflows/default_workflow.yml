@@ -4,8 +4,7 @@ on:
   
   push:
     branches:
-      - '**'
-      - '!main'
+      - 'main'
 #   pull_request:
 #     branches: [ "main" ]
 
@@ -82,130 +81,7 @@ jobs:
                 print(f"Exception Error : {err}")
                 exit(1)
                 
-  check-values:
-    name: Job to check values
-    needs: pre-checks
-    runs-on: ubuntu-latest
-    environment: development
-    steps:
-      - name: Checks for the values
-        id: check_values
-        run: |
-              import os
-              print("${{ needs.pre-checks.outputs.workflow_setup }}")
-              try:
-                with open(os.getenv('GITHUB_STEP_SUMMARY'), "a") as myfile:
-                    myfile.write(f"### Checks for the values! :8ball:")
-              except Exception as err:
-                print(f"Exception Error : {err}")
-                exit(1)
-                  
-      - name: Validating the condition
-        id: validate_conditions
-        if : ${{ needs.pre-checks.outputs.workflow_setup }} == 'false'
-        run: print("Condition validated!")
-  pipeline-setup :
-    name: Pipeline setup job
-    needs: pre-checks 
-    runs-on: ubuntu-latest
-    environment: development
-    if: needs.pre-checks.outputs.workflow_setup == 'false'
-    outputs:
-      pipeline_creation:  ${{ steps.define_pipeline_wf.outputs.pipeline_creation }}
-      workflow_setup: ${{ needs.pre-checks.outputs.workflow_setup }}
-      workflow_init_file_creation: ${{ steps.workflow_init_file_create.outputs.workflow_init_file_creation }}
-    steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - name: Download the code from GitHub repo to local runner
-        id: download_code
-        uses: actions/checkout@v2
-        with:
-          token: ${{ secrets.WORKFLOW_TOKEN }}
-      
-      - name: Define Pipeline workflow(s)
-        id: define_pipeline_wf
-        run: |
-              import sys, os
-              try:
-
-                with open(os.getenv('GITHUB_OUTPUT'), "a") as myfile:
-                      myfile.write("pipeline_creation=true\n")
-
-                #with open(".github/workflows/blank.yml", "a") as f:
-                 # f.write("# Comments added")
-                #os.rename("release_pipeline_manual.not_initiated","release_pipeline_manual.yml")
-                      
-              except Exception as e:
-                print(f"Exception : {e}")
-                exit(1)
-      - name: Initialize '.github/workflow_init_file' file
-        if:  steps.define_pipeline_wf.outputs.pipeline_creation == 'true'
-        id: workflow_init_file_create
-        run: |
-              from datetime import datetime
-              import os
-              try:
-                current_time = datetime.now()
-                last_commit_message = "'${{ github.event.head_commit.message }}'"
-                
-                with open(".github/workflow_init_file", "a") as workflow_init_file:
-                  workflow_init_file.write("GHA_AUTO_AGENT : Pipeline Initialization\n")
-                  workflow_init_file.write(f"Commit Message : {last_commit_message}\n")
-                  workflow_init_file.write(f"Date & Time : {current_time.strftime('%d/%m/%Y %H:%M:%S')}\n")   
-                
-                with open(os.getenv('GITHUB_OUTPUT'), "a") as myfile:
-                      myfile.write("workflow_init_file_creation=true\n")
-              except Exception as e:
-                print(f"Exception : {e}")
-                exit(1)
-      - name: Commit & Push changes to repo
-        if:  steps.workflow_init_file_create.outputs.workflow_init_file_creation == 'true'
-        shell: sh
-        run: |
-          echo "Performing git commit as part of pipeline workflow setup!"
-          git config --global user.name 'GHA_AUTO_AGENT'
-          git config --global user.email 'GHA_AUTO_AGENT@gmail.com'
-          git add .github/workflow_init_file
-          git commit -am "GHA_AUTO_AGENT : Pipeline Initialization"
-          git push
-      - name: Trigger workflow for Release Pipeline Workflow setup
-        shell: sh
-        run: |
-              curl \
-              -H "Accept: application/vnd.github+json" \
-              -H "X-GitHub-Api-Version: 2022-11-28" \
-              -u ${{ secrets.WORKFLOW_TOKEN }}:x-oauth-basic
-              https://api.github.com/repos/$GITHUB_REPOSITORY/actions/workflows/release_pipeline_manual.yml
- 
-  final-step:
-    needs: [check-values, pipeline-setup]
-    runs-on: ubuntu-latest
-    
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:
-      - name: Check the last commit message
-        run: print("Commit message = ${{ github.event.head_commit.message }}")
   
-  parallel-thread1-job1:
-    name: Parallel thread1 job1
-    runs-on: ubuntu-latest
-    steps:
-      - name: Step 1
-        run: print("Step 1")
-  parallel-thread1-job2:
-    name: Parallel thread1 job2
-    needs: parallel-thread1-job1
-    runs-on: ubuntu-latest
-    steps:
-      - name: Step 1
-        run: print("Step 1")
-  parallel-thread1-job3:
-    name: Parallel thread1 job3
-    needs: [parallel-thread1-job2]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Step 1
-        run: print("Step 1")
 
 # Comments added
 # Comments added
