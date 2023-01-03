@@ -1,0 +1,212 @@
+name: Pipeline Workflow Setup
+run-name: ${{ github.repository }} | ${{ github.ref_name }} | ${{ github.event_name }} | '${{ github.event.head_commit.message }}'
+on:
+  
+  push:
+    branches:
+      - '**'
+      - '!main'
+#   pull_request:
+#     branches: [ "main" ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+    inputs:
+      test_input:
+        description: Workflow dispatcher testing
+        type: string
+        required: true
+  
+defaults:
+  run:
+    shell: python
+    
+env:
+  dummy_variable : false
+
+jobs:
+  pre-checks:
+    name: Pre checks job
+    runs-on: ubuntu-latest
+    environment: development
+    outputs:
+      workflow_setup:  ${{ steps.pre_build_steps.outputs.workflow_setup }}
+    steps:
+      - name: Download the code from GitHub repo to local runner
+        id: download_code
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.WORKFLOW_TOKEN }}
+      - name: Check pre build steps
+        id: pre_build_steps
+        run: |
+              import os
+              try:
+                workflow_setup_value = "true" if os.path.exists(".github/workflow_init_file") else "false"
+                
+                last_commit_message = "'${{ github.event.head_commit.message }}'"
+
+                if last_commit_message.find("GHA_AUTO_AGENT") > 0:
+                  workflow_setup_value = "true"
+                
+                with open(os.getenv('GITHUB_OUTPUT'), "a") as myfile:
+                      myfile.write(f"workflow_setup={workflow_setup_value}\n")
+                print(f"Input :")
+                print(f"  - Commit Message = '{last_commit_message}'")
+                print("Initialized : ")
+                print(f"  - Workflow_setup = {workflow_setup_value}")
+                print("Details : ")
+                print(f"  - Skipping subsequent jobs as initialization has already occurred")
+                
+                
+                with open(os.getenv('GITHUB_STEP_SUMMARY'), "a") as myfile:
+                      myfile.write(f"### List all useful env variables that can be used :rocket:\n")
+                      myfile.write(f"<table><tr><th>Env Var Name<th>Current Value</tr>")
+                      myfile.write(f"<tr><td>GITHUB_ACTION<td>{os.getenv('GITHUB_ACTION')}")
+                      myfile.write(f"<tr><td>GITHUB_ACTIONS<td>{os.getenv('GITHUB_ACTIONS')}")
+                      myfile.write(f"<tr><td>GITHUB_ACTOR<td>{os.getenv('GITHUB_ACTOR')}")
+                      myfile.write(f"<tr><td>GITHUB_EVENT_NAME<td>{os.getenv('GITHUB_EVENT_NAME')}")
+                      myfile.write(f"<tr><td>GITHUB_JOB<td>{os.getenv('GITHUB_JOB')}")
+                      myfile.write(f"<tr><td>GITHUB_REF<td>{os.getenv('GITHUB_REF')}")
+                      myfile.write(f"<tr><td>GITHUB_REF_NAME<td>{os.getenv('GITHUB_REF_NAME')}")
+                      myfile.write(f"<tr><td>GITHUB_REF_TYPE<td>{os.getenv('GITHUB_REF_TYPE')}")
+                      myfile.write(f"<tr><td>GITHUB_REPOSITORY<td>{os.getenv('GITHUB_REPOSITORY')}")
+                      myfile.write(f"<tr><td>GITHUB_REPOSITORY_OWNER<td>{os.getenv('GITHUB_REPOSITORY_OWNER')}")
+                      myfile.write(f"<tr><td>RUNNER_NAME<td>{os.getenv('RUNNER_NAME')}")
+                      myfile.write(f"<tr><td>GITHUB_BASE_REF<td>{os.getenv('GITHUB_BASE_REF')}")
+                      myfile.write(f"<tr><td>GITHUB_WORKFLOW<td>{os.getenv('GITHUB_WORKFLOW')}")
+                      myfile.write(f"<tr><td>GITHUB_ACTION_REPOSITORY<td>{os.getenv('GITHUB_ACTION_REPOSITORY')}")
+                      myfile.write(f"</table>")
+
+              except Exception as err:
+                print(f"Exception Error : {err}")
+                exit(1)
+                
+  check-values:
+    name: Job to check values
+    needs: pre-checks
+    runs-on: ubuntu-latest
+    environment: development
+    steps:
+      - name: Checks for the values
+        id: check_values
+        run: |
+              import os
+              print("${{ needs.pre-checks.outputs.workflow_setup }}")
+              try:
+                with open(os.getenv('GITHUB_STEP_SUMMARY'), "a") as myfile:
+                    myfile.write(f"### Checks for the values! :8ball:")
+              except Exception as err:
+                print(f"Exception Error : {err}")
+                exit(1)
+                  
+      - name: Validating the condition
+        id: validate_conditions
+        if : ${{ needs.pre-checks.outputs.workflow_setup }} == 'false'
+        run: print("Condition validated!")
+  pipeline-setup :
+    name: Pipeline setup job
+    needs: pre-checks 
+    runs-on: ubuntu-latest
+    environment: development
+    if: needs.pre-checks.outputs.workflow_setup == 'false'
+    outputs:
+      pipeline_creation:  ${{ steps.define_pipeline_wf.outputs.pipeline_creation }}
+      workflow_setup: ${{ needs.pre-checks.outputs.workflow_setup }}
+      workflow_init_file_creation: ${{ steps.workflow_init_file_create.outputs.workflow_init_file_creation }}
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Download the code from GitHub repo to local runner
+        id: download_code
+        uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.WORKFLOW_TOKEN }}
+      
+      - name: Define Pipeline workflow(s)
+        id: define_pipeline_wf
+        run: |
+              import sys, os
+              try:
+
+                with open(os.getenv('GITHUB_OUTPUT'), "a") as myfile:
+                      myfile.write("pipeline_creation=true\n")
+
+                #with open(".github/workflows/blank.yml", "a") as f:
+                 # f.write("# Comments added")
+                #os.rename("release_pipeline_manual.not_initiated","release_pipeline_manual.yml")
+                      
+              except Exception as e:
+                print(f"Exception : {e}")
+                exit(1)
+      - name: Initialize '.github/workflow_init_file' file
+        if:  steps.define_pipeline_wf.outputs.pipeline_creation == 'true'
+        id: workflow_init_file_create
+        run: |
+              from datetime import datetime
+              import os
+              try:
+                current_time = datetime.now()
+                last_commit_message = "'${{ github.event.head_commit.message }}'"
+                
+                with open(".github/workflow_init_file", "a") as workflow_init_file:
+                  workflow_init_file.write("GHA_AUTO_AGENT : Pipeline Initialization\n")
+                  workflow_init_file.write(f"Commit Message : {last_commit_message}\n")
+                  workflow_init_file.write(f"Date & Time : {current_time.strftime('%d/%m/%Y %H:%M:%S')}\n")   
+                
+                with open(os.getenv('GITHUB_OUTPUT'), "a") as myfile:
+                      myfile.write("workflow_init_file_creation=true\n")
+              except Exception as e:
+                print(f"Exception : {e}")
+                exit(1)
+      - name: Commit & Push changes to repo
+        if:  steps.workflow_init_file_create.outputs.workflow_init_file_creation == 'true'
+        shell: sh
+        run: |
+          echo "Performing git commit as part of pipeline workflow setup!"
+          git config --global user.name 'GHA_AUTO_AGENT'
+          git config --global user.email 'GHA_AUTO_AGENT@gmail.com'
+          git add .github/workflow_init_file
+          git commit -am "GHA_AUTO_AGENT : Pipeline Initialization"
+          git push
+      - name: Trigger workflow for Release Pipeline Workflow setup
+        shell: sh
+        run: |
+              curl \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              -u ${{ secrets.WORKFLOW_TOKEN }}:x-oauth-basic
+              https://api.github.com/repos/$GITHUB_REPOSITORY/actions/workflows/release_pipeline_manual.yml
+ 
+  final-step:
+    needs: [check-values, pipeline-setup]
+    runs-on: ubuntu-latest
+    
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - name: Check the last commit message
+        run: print("Commit message = ${{ github.event.head_commit.message }}")
+  
+  parallel-thread1-job1:
+    name: Parallel thread1 job1
+    runs-on: ubuntu-latest
+    steps:
+      - name: Step 1
+        run: print("Step 1")
+  parallel-thread1-job2:
+    name: Parallel thread1 job2
+    needs: parallel-thread1-job1
+    runs-on: ubuntu-latest
+    steps:
+      - name: Step 1
+        run: print("Step 1")
+  parallel-thread1-job3:
+    name: Parallel thread1 job3
+    needs: [parallel-thread1-job2]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Step 1
+        run: print("Step 1")
+
+# Comments added
+# Comments added
+# Comments added
