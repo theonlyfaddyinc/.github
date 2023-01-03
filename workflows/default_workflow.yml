@@ -1,83 +1,127 @@
 name: "Pipeline Workflow Setup"
 
 on:
+  # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
     branches: [ "main" ]
-#   pull_request:
-#     branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_call:
+    inputs:
+      sample_input:
+        required: true
+        type: string
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
-    inputs:
-      test_input:
-        description: Workflow dispatcher testing
-        type: string
-        required: true
-  
-defaults:
-  run:
-    shell: python
-    
-env:
-  dummy_variable : false
 
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  pre-checks:
-    name: Pre checks job
+  # This workflow contains a single job called "build"
+  step1:
+    # The type of runner that the job will run on
     runs-on: ubuntu-latest
-    environment: development
-    outputs:
-      workflow_setup:  ${{ steps.pre_build_steps.outputs.workflow_setup }}
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      - name: Download the code from GitHub repo to local runner
-        id: download_code
-        uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.WORKFLOW_TOKEN }}
-      - name: Check pre build steps
-        id: pre_build_steps
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v3
+
+      # Runs a single command using the runners shell
+      - name: Run a one-line script
+        run: echo Hello, ${{ inputs.sample_input }}
+
+      # Runs a set of commands using the runners shell
+      - name: Run a multi-line script
         run: |
-              import os
-              try:
-                workflow_setup_value = "true" if os.path.exists(".github/workflow_init_file") else "false"
-                
-                last_commit_message = "'${{ github.event.head_commit.message }}'"
+          echo Add other actions to build,
+          echo test, and deploy your project. Got it ${{ inputs.sample_input }}?
+  step2:
+    needs: step1
+    name: Step 2
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run a simple step
+        run: echo "Run a simple step"
 
-                if last_commit_message.find("GHA_AUTO_AGENT") > 0:
-                  workflow_setup_value = "true"
-                
-                with open(os.getenv('GITHUB_OUTPUT'), "a") as myfile:
-                      myfile.write(f"workflow_setup={workflow_setup_value}\n")
-                print(f"Input :")
-                print(f"  - Commit Message = '{last_commit_message}'")
-                print("Initialized : ")
-                print(f"  - Workflow_setup = {workflow_setup_value}")
-                print("Details : ")
-                print(f"  - Skipping subsequent jobs as initialization has already occurred")
-                
-                
-                with open(os.getenv('GITHUB_STEP_SUMMARY'), "a") as myfile:
-                      myfile.write(f"### List all useful env variables that can be used :rocket:\n")
-                      myfile.write(f"<table><tr><th>Env Var Name<th>Current Value</tr>")
-                      myfile.write(f"<tr><td>GITHUB_ACTION<td>{os.getenv('GITHUB_ACTION')}")
-                      myfile.write(f"<tr><td>GITHUB_ACTIONS<td>{os.getenv('GITHUB_ACTIONS')}")
-                      myfile.write(f"<tr><td>GITHUB_ACTOR<td>{os.getenv('GITHUB_ACTOR')}")
-                      myfile.write(f"<tr><td>GITHUB_EVENT_NAME<td>{os.getenv('GITHUB_EVENT_NAME')}")
-                      myfile.write(f"<tr><td>GITHUB_JOB<td>{os.getenv('GITHUB_JOB')}")
-                      myfile.write(f"<tr><td>GITHUB_REF<td>{os.getenv('GITHUB_REF')}")
-                      myfile.write(f"<tr><td>GITHUB_REF_NAME<td>{os.getenv('GITHUB_REF_NAME')}")
-                      myfile.write(f"<tr><td>GITHUB_REF_TYPE<td>{os.getenv('GITHUB_REF_TYPE')}")
-                      myfile.write(f"<tr><td>GITHUB_REPOSITORY<td>{os.getenv('GITHUB_REPOSITORY')}")
-                      myfile.write(f"<tr><td>GITHUB_REPOSITORY_OWNER<td>{os.getenv('GITHUB_REPOSITORY_OWNER')}")
-                      myfile.write(f"<tr><td>RUNNER_NAME<td>{os.getenv('RUNNER_NAME')}")
-                      myfile.write(f"<tr><td>GITHUB_BASE_REF<td>{os.getenv('GITHUB_BASE_REF')}")
-                      myfile.write(f"<tr><td>GITHUB_WORKFLOW<td>{os.getenv('GITHUB_WORKFLOW')}")
-                      myfile.write(f"<tr><td>GITHUB_ACTION_REPOSITORY<td>{os.getenv('GITHUB_ACTION_REPOSITORY')}")
-                      myfile.write(f"</table>")
+# on:
+#   push:
+#     branches: [ "main" ]
+# #   pull_request:
+# #     branches: [ "main" ]
 
-              except Exception as err:
-                print(f"Exception Error : {err}")
-                exit(1)
+#   # Allows you to run this workflow manually from the Actions tab
+#   workflow_dispatch:
+#     inputs:
+#       test_input:
+#         description: Workflow dispatcher testing
+#         type: string
+#         required: true
+  
+# defaults:
+#   run:
+#     shell: python
+    
+# env:
+#   dummy_variable : false
+
+# jobs:
+#   pre-checks:
+#     name: Pre checks job
+#     runs-on: ubuntu-latest
+#     environment: development
+#     outputs:
+#       workflow_setup:  ${{ steps.pre_build_steps.outputs.workflow_setup }}
+#     steps:
+#       - name: Download the code from GitHub repo to local runner
+#         id: download_code
+#         uses: actions/checkout@v3
+#         with:
+#           token: ${{ secrets.WORKFLOW_TOKEN }}
+#       - name: Check pre build steps
+#         id: pre_build_steps
+#         run: |
+#               import os
+#               try:
+#                 workflow_setup_value = "true" if os.path.exists(".github/workflow_init_file") else "false"
+                
+#                 last_commit_message = "'${{ github.event.head_commit.message }}'"
+
+#                 if last_commit_message.find("GHA_AUTO_AGENT") > 0:
+#                   workflow_setup_value = "true"
+                
+#                 with open(os.getenv('GITHUB_OUTPUT'), "a") as myfile:
+#                       myfile.write(f"workflow_setup={workflow_setup_value}\n")
+#                 print(f"Input :")
+#                 print(f"  - Commit Message = '{last_commit_message}'")
+#                 print("Initialized : ")
+#                 print(f"  - Workflow_setup = {workflow_setup_value}")
+#                 print("Details : ")
+#                 print(f"  - Skipping subsequent jobs as initialization has already occurred")
+                
+                
+#                 with open(os.getenv('GITHUB_STEP_SUMMARY'), "a") as myfile:
+#                       myfile.write(f"### List all useful env variables that can be used :rocket:\n")
+#                       myfile.write(f"<table><tr><th>Env Var Name<th>Current Value</tr>")
+#                       myfile.write(f"<tr><td>GITHUB_ACTION<td>{os.getenv('GITHUB_ACTION')}")
+#                       myfile.write(f"<tr><td>GITHUB_ACTIONS<td>{os.getenv('GITHUB_ACTIONS')}")
+#                       myfile.write(f"<tr><td>GITHUB_ACTOR<td>{os.getenv('GITHUB_ACTOR')}")
+#                       myfile.write(f"<tr><td>GITHUB_EVENT_NAME<td>{os.getenv('GITHUB_EVENT_NAME')}")
+#                       myfile.write(f"<tr><td>GITHUB_JOB<td>{os.getenv('GITHUB_JOB')}")
+#                       myfile.write(f"<tr><td>GITHUB_REF<td>{os.getenv('GITHUB_REF')}")
+#                       myfile.write(f"<tr><td>GITHUB_REF_NAME<td>{os.getenv('GITHUB_REF_NAME')}")
+#                       myfile.write(f"<tr><td>GITHUB_REF_TYPE<td>{os.getenv('GITHUB_REF_TYPE')}")
+#                       myfile.write(f"<tr><td>GITHUB_REPOSITORY<td>{os.getenv('GITHUB_REPOSITORY')}")
+#                       myfile.write(f"<tr><td>GITHUB_REPOSITORY_OWNER<td>{os.getenv('GITHUB_REPOSITORY_OWNER')}")
+#                       myfile.write(f"<tr><td>RUNNER_NAME<td>{os.getenv('RUNNER_NAME')}")
+#                       myfile.write(f"<tr><td>GITHUB_BASE_REF<td>{os.getenv('GITHUB_BASE_REF')}")
+#                       myfile.write(f"<tr><td>GITHUB_WORKFLOW<td>{os.getenv('GITHUB_WORKFLOW')}")
+#                       myfile.write(f"<tr><td>GITHUB_ACTION_REPOSITORY<td>{os.getenv('GITHUB_ACTION_REPOSITORY')}")
+#                       myfile.write(f"</table>")
+
+#               except Exception as err:
+#                 print(f"Exception Error : {err}")
+#                 exit(1)
                 
   
 
