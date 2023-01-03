@@ -1,0 +1,15 @@
+name: Cookie Cutter for  CI
+
+on:
+  push:[main]
+  pull_request:[main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run a one-line script
+        run: echo "Cookie Cutter for  CI"
