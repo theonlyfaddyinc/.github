@@ -1,0 +1,27 @@
+name: Example Project Build 
+
+on:
+  workflow_dispatch:
+
+jobs:
+  starting_step:
+    runs-on: ubuntu-latest
+    # runs-on: [ self-hosted, worker ]
+    steps:
+      - name: Starting
+        run: echo 'Starting build...'
+
+  jdk_build:
+    needs: starting_step
+    uses: theonlyfaddyinc/devops-standard-library/.github/workflows/fake-jdk-build.yml@arctiq-approach
+    secrets: inherit
+
+  maven_build:
+    needs: starting_step
+    uses: theonlyfaddyinc/devops-standard-library/.github/workflows/fake-maven-build.yml@arctiq-approach
+    secrets: inherit
+
+  graddle_build:
+    needs: starting_step
+    uses: theonlyfaddyinc/devops-standard-library/.github/workflows/fake-graddle-build.yml@arctiq-approach
+    secrets: inherit

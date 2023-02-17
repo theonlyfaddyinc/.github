@@ -1,0 +1,5 @@
+{
+	"name": "Build and Deploy Workflow",
+	"description": "Example starter workflow to build and deploy a project.",
+	"iconName": "octicon hubot"
+}
